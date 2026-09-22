@@ -1,246 +1,315 @@
-﻿/* =========================================================
-   EIA x Green Infrastructure — Extra Animations (script.js)
-   NEW: Morphing Blobs, Glitch, Starfield, Neon Cursor Trail,
-        3D Card Flip, Wave Surface, Matrix Rain, Gradient Shift
-   ========================================================= */
+/* ==========================================================================
+   EIA x Green Infrastructure — Animation & Interaction Engine
+   Features:
+   - Subtle Floating Leaves Ambient Canvas (slow, organic motion)
+   - Animated Number Counters on slide activation
+   - Visible "Reduce Motion" accessibility manager
+   - Active section tracking for the 7 navigation items
+   - Keyboard & Touch navigation with progress bar
+   ========================================================================== */
 
 (function () {
   'use strict';
 
-  /* ══════════════════════════════════════════
-     1. MORPHING LIQUID BLOBS
-  ══════════════════════════════════════════ */
-  for (var bi = 0; bi < 3; bi++) {
-    var blob = document.createElement('div');
-    blob.className = 'liquid-blob';
-    document.body.insertBefore(blob, document.body.firstChild);
-  }
+  /* ========================================================================
+     1. ACCESSIBILITY: REDUCE MOTION CONTROLLER
+     ======================================================================== */
+  var motionBtn = document.getElementById('motionToggleBtn');
+  var isMotionReduced = false;
 
-  /* ══════════════════════════════════════════
-     2. STARFIELD — 120 twinkling stars
-  ══════════════════════════════════════════ */
-  var starFrag = document.createDocumentFragment();
-  for (var si = 0; si < 120; si++) {
-    var star = document.createElement('div');
-    star.className = 'star';
-    var sz = 0.5 + Math.random() * 2.5;
-    star.style.cssText = [
-      'width:' + sz + 'px',
-      'height:' + sz + 'px',
-      'left:' + Math.random() * 100 + 'vw',
-      'top:' + Math.random() * 100 + 'vh',
-      'animation-duration:' + (2 + Math.random() * 5) + 's,' + (8 + Math.random() * 12) + 's',
-      'animation-delay:-' + (Math.random() * 5) + 's,-' + (Math.random() * 10) + 's',
-      'opacity:' + (0.1 + Math.random() * 0.5)
-    ].join(';');
-    starFrag.appendChild(star);
-  }
-  document.body.insertBefore(starFrag, document.body.firstChild);
-
-  /* ══════════════════════════════════════════
-     3. MATRIX RAIN CANVAS
-  ══════════════════════════════════════════ */
-  var matCanvas = document.createElement('canvas');
-  matCanvas.id = 'matrix-canvas';
-  document.body.insertBefore(matCanvas, document.body.firstChild);
-
-  function initMatrix() {
-    var ctx = matCanvas.getContext('2d');
-    matCanvas.width  = window.innerWidth;
-    matCanvas.height = window.innerHeight;
-
-    var cols   = Math.floor(matCanvas.width / 16);
-    var drops  = [];
-    for (var di = 0; di < cols; di++) drops[di] = Math.random() * -50;
-
-    var chars  = 'エイアグリーンインフラEIAGREEN0123456789アイウエオ';
-
-    function draw() {
-      ctx.fillStyle = 'rgba(5,15,10,0.05)';
-      ctx.fillRect(0, 0, matCanvas.width, matCanvas.height);
-      ctx.font = '13px monospace';
-
-      for (var ci = 0; ci < drops.length; ci++) {
-        var ch = chars[Math.floor(Math.random() * chars.length)];
-        /* gradient: bright head, dim tail */
-        var y = drops[ci] * 16;
-        ctx.fillStyle = drops[ci] > 2 ? 'rgba(93,228,168,0.7)' : 'rgba(180,255,220,0.95)';
-        ctx.fillText(ch, ci * 16, y);
-        if (y > matCanvas.height && Math.random() > 0.975) drops[ci] = 0;
-        drops[ci] += 0.4;
+  function setReduceMotion(reduce) {
+    isMotionReduced = reduce;
+    document.documentElement.classList.toggle('reduced-motion', reduce);
+    if (motionBtn) {
+      motionBtn.classList.toggle('active', reduce);
+      motionBtn.setAttribute('aria-pressed', reduce ? 'true' : 'false');
+      var label = motionBtn.querySelector('span');
+      if (label) {
+        label.textContent = reduce ? 'Motion reduced' : 'Reduce motion';
       }
     }
-    return setInterval(draw, 50);
+    try {
+      localStorage.setItem('eia_reduced_motion', reduce ? '1' : '0');
+    } catch (e) {}
   }
 
-  var matrixInterval = initMatrix();
-  window.addEventListener('resize', function () {
-    clearInterval(matrixInterval);
-    matrixInterval = initMatrix();
-  });
+  // Check saved preference or system preference
+  var savedPref = null;
+  try {
+    savedPref = localStorage.getItem('eia_reduced_motion');
+  } catch (e) {}
 
-  /* ══════════════════════════════════════════
-     4. NEON CURSOR TRAIL
-  ══════════════════════════════════════════ */
-  var trailColors = ['#5de4a8','#a8f0d0','#e8894a','#ffb380','#6effc7','#b0c4f0'];
-  var trailCount  = 0;
+  if (savedPref !== null) {
+    setReduceMotion(savedPref === '1');
+  } else if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setReduceMotion(true);
+  }
 
-  document.addEventListener('mousemove', function (e) {
-    trailCount++;
-    if (trailCount % 3 !== 0) return; /* every 3rd move = smoother perf */
+  if (motionBtn) {
+    motionBtn.addEventListener('click', function () {
+      setReduceMotion(!isMotionReduced);
+    });
+  }
 
-    var dot = document.createElement('div');
-    dot.className = 'cursor-trail';
-    var size  = 6 + Math.random() * 10;
-    var color = trailColors[Math.floor(Math.random() * trailColors.length)];
-    dot.style.cssText = [
-      'width:' + size + 'px',
-      'height:' + size + 'px',
-      'left:' + (e.clientX - size / 2) + 'px',
-      'top:' + (e.clientY - size / 2) + 'px',
-      'background:' + color,
-      'box-shadow: 0 0 ' + (size * 2) + 'px ' + color + ', 0 0 ' + (size * 4) + 'px ' + color + '44'
-    ].join(';');
-    document.body.appendChild(dot);
-    setTimeout(function () { dot.remove(); }, 600);
-  });
+  /* ========================================================================
+     2. AMBIENT FLOATING LEAVES CANVAS (Subtle, Organic & Gentle)
+     ======================================================================== */
+  var leavesCanvas = document.getElementById('ambientLeavesCanvas');
+  if (!leavesCanvas) {
+    leavesCanvas = document.createElement('canvas');
+    leavesCanvas.id = 'ambientLeavesCanvas';
+    leavesCanvas.setAttribute('aria-hidden', 'true');
+    document.body.insertBefore(leavesCanvas, document.body.firstChild);
+  }
 
-  /* ══════════════════════════════════════════
-     5. WAVE BOTTOM BAR (animated)
-  ══════════════════════════════════════════ */
-  var waveBar = document.createElement('div');
-  waveBar.className = 'wave-bar';
-  document.body.appendChild(waveBar);
+  var ctx = leavesCanvas.getContext('2d');
+  var leaves = [];
+  var leafCount = 14;
+  var animFrameId = null;
 
-  /* WAVE SVG CANVAS at bottom */
-  var waveCanvas = document.createElement('canvas');
-  waveCanvas.className = 'wave-canvas';
-  document.body.appendChild(waveCanvas);
+  function resizeCanvas() {
+    leavesCanvas.width = window.innerWidth;
+    leavesCanvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
 
-  function initWave() {
-    var wctx  = waveCanvas.getContext('2d');
-    waveCanvas.width  = window.innerWidth;
-    waveCanvas.height = 120;
-    var offset = 0;
+  function createLeaf(initialY) {
+    return {
+      x: Math.random() * leavesCanvas.width,
+      y: initialY !== undefined ? initialY : Math.random() * leavesCanvas.height,
+      size: 14 + Math.random() * 18,
+      speedY: 0.35 + Math.random() * 0.45,
+      speedX: (Math.random() - 0.5) * 0.4,
+      rotation: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.015,
+      opacity: 0.12 + Math.random() * 0.16,
+      swayOffset: Math.random() * 100,
+      color: Math.random() > 0.4 ? 'rgba(74, 222, 128, ' : 'rgba(45, 212, 191, '
+    };
+  }
 
-    function drawWave() {
-      wctx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+  for (var i = 0; i < leafCount; i++) {
+    leaves.push(createLeaf());
+  }
 
-      /* Three layered waves */
-      [[0.018, 28, '#5de4a8', 0.35], [0.012, 20, '#a8f0d0', 0.22], [0.025, 14, '#e8894a', 0.18]]
-        .forEach(function (cfg, wi) {
-          wctx.beginPath();
-          wctx.moveTo(0, waveCanvas.height);
-          for (var x = 0; x <= waveCanvas.width; x += 2) {
-            var y = waveCanvas.height - cfg[1] - Math.sin((x * cfg[0]) + offset + wi * 1.2) * cfg[1];
-            wctx.lineTo(x, y);
-          }
-          wctx.lineTo(waveCanvas.width, waveCanvas.height);
-          wctx.closePath();
-          wctx.fillStyle = cfg[2];
-          wctx.globalAlpha = cfg[3];
-          wctx.fill();
-          wctx.globalAlpha = 1;
-        });
+  function drawLeaf(leaf) {
+    ctx.save();
+    ctx.translate(leaf.x, leaf.y);
+    ctx.rotate(leaf.rotation);
+    ctx.fillStyle = leaf.color + leaf.opacity + ')';
+    
+    // Draw minimalist stylized curved leaf silhouette
+    ctx.beginPath();
+    ctx.moveTo(0, -leaf.size);
+    ctx.bezierCurveTo(leaf.size * 0.7, -leaf.size * 0.3, leaf.size * 0.6, leaf.size * 0.5, 0, leaf.size);
+    ctx.bezierCurveTo(-leaf.size * 0.6, leaf.size * 0.5, -leaf.size * 0.7, -leaf.size * 0.3, 0, -leaf.size);
+    ctx.fill();
 
-      offset += 0.03;
-      requestAnimationFrame(drawWave);
+    // Subtle central stem vein
+    ctx.strokeStyle = leaf.color + (leaf.opacity * 1.5) + ')';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, -leaf.size * 0.9);
+    ctx.lineTo(0, leaf.size * 0.85);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function animateLeaves() {
+    if (isMotionReduced) {
+      ctx.clearRect(0, 0, leavesCanvas.width, leavesCanvas.height);
+      return;
     }
-    drawWave();
+
+    ctx.clearRect(0, 0, leavesCanvas.width, leavesCanvas.height);
+
+    for (var j = 0; j < leaves.length; j++) {
+      var l = leaves[j];
+      l.y += l.speedY;
+      l.x += l.speedX + Math.sin((l.y + l.swayOffset) * 0.008) * 0.45;
+      l.rotation += l.rotSpeed;
+
+      // Wrap around top when falling off screen
+      if (l.y > leavesCanvas.height + 40) {
+        leaves[j] = createLeaf(-30);
+      }
+      if (l.x < -40) l.x = leavesCanvas.width + 30;
+      if (l.x > leavesCanvas.width + 40) l.x = -30;
+
+      drawLeaf(l);
+    }
+
+    animFrameId = requestAnimationFrame(animateLeaves);
   }
-  initWave();
-  window.addEventListener('resize', function () {
-    waveCanvas.width = window.innerWidth;
-  });
 
-  /* ══════════════════════════════════════════
-     6. GLITCH — add data-text attr to brand
-  ══════════════════════════════════════════ */
-  var brandDiv = document.querySelector('.brand > div');
-  if (brandDiv) {
-    var originalText = brandDiv.childNodes[0]
-      ? brandDiv.childNodes[0].textContent.trim()
-      : 'EIA × Green Infrastructure';
-    brandDiv.setAttribute('data-text', originalText);
+  animateLeaves();
+
+  /* ========================================================================
+     3. ANIMATED NUMBER COUNTERS (For statistics and key metrics)
+     ======================================================================== */
+  function animateCountersInSlide(slideEl) {
+    if (isMotionReduced) return;
+
+    var numElements = slideEl.querySelectorAll('.stat-num, .metric-number, [data-counter]');
+    numElements.forEach(function (el) {
+      var target = parseFloat(el.getAttribute('data-target') || el.textContent.replace(/[^\d.]/g, ''));
+      if (isNaN(target)) return;
+
+      var prefix = el.getAttribute('data-prefix') || '';
+      var suffix = el.getAttribute('data-suffix') || '';
+      var startTime = null;
+      var duration = 1200;
+
+      function step(now) {
+        if (!startTime) startTime = now;
+        var progress = Math.min((now - startTime) / duration, 1);
+        // easeOutQuad
+        var current = Math.floor(target * (1 - (1 - progress) * (1 - progress)));
+        el.textContent = prefix + current + suffix;
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          el.textContent = prefix + target + suffix;
+        }
+      }
+      requestAnimationFrame(step);
+    });
   }
 
-  /* Occasional full-page glitch flash */
-  function triggerGlitch() {
-    var overlay = document.createElement('div');
-    overlay.style.cssText = [
-      'position:fixed', 'inset:0', 'z-index:9998', 'pointer-events:none',
-      'background:rgba(93,228,168,0.04)',
-      'animation:none',
-      'transform:translateX(' + (Math.random() > 0.5 ? 3 : -3) + 'px)'
-    ].join(';');
-    document.body.appendChild(overlay);
-    setTimeout(function () { overlay.remove(); }, 80);
+  /* ========================================================================
+     4. SLIDE TRACKING & SECTION NAVIGATION
+     ======================================================================== */
+  var slides = Array.from(document.querySelectorAll('.slide'));
+  var navButtons = document.querySelectorAll('.nav button');
+  var progressBar = document.getElementById('progressBar');
+  var slideCountEl = document.getElementById('slideCount');
+  var totalSlides = slides.length;
 
-    /* Chromatic aberration flash */
-    document.body.style.filter = 'hue-rotate(' + (Math.random() * 30 - 15) + 'deg) brightness(1.05)';
-    setTimeout(function () { document.body.style.filter = ''; }, 100);
+  // Map slide index to the 7 sections:
+  // 1: Overview, 2-5: EIA, 6-18: Process, 19-23: Green Infrastructure,
+  // 24-25 & 28-30: Benefits, 26 & 31: Case Study, 32-40: Q&A
+  function getSectionKey(slideNum) {
+    if (slideNum === 1) return 'overview';
+    if (slideNum >= 2 && slideNum <= 5) return 'eia';
+    if (slideNum >= 6 && slideNum <= 18) return 'process';
+    if (slideNum >= 19 && slideNum <= 23) return 'gi';
+    if (slideNum === 26 || slideNum === 31) return 'casestudy';
+    if ((slideNum >= 24 && slideNum <= 25) || (slideNum >= 27 && slideNum <= 30)) return 'benefits';
+    if (slideNum >= 32 && slideNum <= 40) return 'qa';
+    return 'overview';
   }
-  /* Trigger glitch randomly every 8-20s */
-  function scheduleGlitch() {
-    var delay = 8000 + Math.random() * 12000;
-    setTimeout(function () { triggerGlitch(); scheduleGlitch(); }, delay);
-  }
-  scheduleGlitch();
 
-  /* ══════════════════════════════════════════
-     7. 3D CARD FLIP — enhanced tilt on mouse
-  ══════════════════════════════════════════ */
-  document.querySelectorAll('.slide').forEach(function (slide) {
-    var shell = slide.querySelector('.slide-shell');
-    if (!shell) return;
+  function updateNavigation(activeSlide) {
+    if (!activeSlide) return;
+    var slideNum = parseInt(activeSlide.getAttribute('data-slide') || '1', 10);
 
-    slide.addEventListener('mousemove', function (e) {
-      if (!slide.classList.contains('active')) return;
-      var r   = slide.getBoundingClientRect();
-      var dx  = (e.clientX - r.left - r.width / 2)  / (r.width / 2);
-      var dy  = (e.clientY - r.top  - r.height / 2) / (r.height / 2);
-      shell.style.transform = 'perspective(1200px) rotateX(' + (-dy * 5) + 'deg) rotateY(' + (dx * 5) + 'deg)';
-      var card = shell.querySelector('.slide-card');
-      if (card) {
-        card.style.transform = 'perspective(900px) rotateX(' + (-dy * 3) + 'deg) rotateY(' + (dx * 3) + 'deg) translateZ(20px)';
-        card.style.boxShadow = '0 ' + (40 + dy * 20) + 'px 100px rgba(0,0,0,.7), 0 0 40px rgba(93,228,168,' + (0.1 + Math.abs(dx) * 0.15) + ')';
+    // Update Counter (01 / 41)
+    if (slideCountEl) {
+      var numStr = (slideNum < 10 ? '0' : '') + slideNum;
+      var totalStr = (totalSlides < 10 ? '0' : '') + totalSlides;
+      slideCountEl.textContent = numStr + ' / ' + totalStr;
+    }
+
+    // Update Progress Bar
+    if (progressBar) {
+      var pct = ((slideNum - 1) / Math.max(1, totalSlides - 1)) * 100;
+      progressBar.style.width = pct + '%';
+    }
+
+    // Update active nav button
+    var activeSecKey = getSectionKey(slideNum);
+    navButtons.forEach(function (btn) {
+      var jumpKey = btn.getAttribute('data-section-jump');
+      var isActive = (jumpKey === activeSecKey);
+      btn.classList.toggle('active', isActive);
+      if (isActive) {
+        btn.setAttribute('aria-current', 'true');
+      } else {
+        btn.removeAttribute('aria-current');
       }
     });
-    slide.addEventListener('mouseleave', function () {
-      shell.style.transform = '';
-      var card = shell.querySelector('.slide-card');
-      if (card) { card.style.transform = ''; card.style.boxShadow = ''; }
+
+    // Trigger number counter animation
+    animateCountersInSlide(activeSlide);
+  }
+
+  // Section button click handler
+  navButtons.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var targetGo = btn.getAttribute('data-go');
+      if (targetGo) {
+        var targetSlide = document.getElementById('slide-' + targetGo);
+        if (targetSlide) {
+          targetSlide.scrollIntoView({ behavior: isMotionReduced ? 'auto' : 'smooth' });
+        }
+      }
     });
   });
 
-  /* ══════════════════════════════════════════
-     8. GRADIENT COLOR SHIFT — section-aware
-  ══════════════════════════════════════════ */
-  var sectionGradients = {
-    eia:     'linear-gradient(135deg, #050f0a 0%, #0a2a18 40%, #071811 80%, #050f0a 100%)',
-    gi:      'linear-gradient(135deg, #040e08 0%, #083318 40%, #0a2010 80%, #040e08 100%)',
-    qa:      'linear-gradient(135deg, #0f0905 0%, #2a1408 40%, #180a04 80%, #0f0905 100%)',
-    sources: 'linear-gradient(135deg, #060810 0%, #0c1030 40%, #080c20 80%, #060810 100%)'
-  };
-
-  var slideEls = document.querySelectorAll('.slide');
-  var io = new IntersectionObserver(function (entries) {
+  // IntersectionObserver to detect active slide smoothly
+  var observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
-      if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-        var sec = entry.target.dataset.section;
-        if (sec && sectionGradients[sec]) {
-          document.body.style.transition = 'background 1.2s ease';
-          document.body.style.background = sectionGradients[sec];
-        }
-        /* Update wave color */
-        var waveColors = { eia:'#5de4a8', gi:'#2ad991', qa:'#e8894a', sources:'#6489dc' };
-        if (waveBar && waveColors[sec]) {
-          waveBar.style.background = 'linear-gradient(90deg,transparent,' + waveColors[sec] + ',transparent)';
-        }
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.45) {
+        slides.forEach(function (s) { s.classList.remove('active'); });
+        entry.target.classList.add('active');
+        updateNavigation(entry.target);
       }
     });
-  }, { threshold: 0.5 });
+  }, { threshold: 0.45 });
 
-  slideEls.forEach(function (s) { io.observe(s); });
+  slides.forEach(function (s) {
+    observer.observe(s);
+  });
+
+  // Initial trigger for first slide
+  var initialSlide = document.querySelector('.slide.active') || slides[0];
+  if (initialSlide) {
+    initialSlide.classList.add('active');
+    updateNavigation(initialSlide);
+  }
+
+  /* ========================================================================
+     5. HERO SLIDE "START" BUTTON
+     ======================================================================== */
+  var heroCta = document.querySelector('.hero-cta');
+  if (heroCta) {
+    heroCta.addEventListener('click', function () {
+      var slide2 = document.getElementById('slide-2');
+      if (slide2) {
+        slide2.scrollIntoView({ behavior: isMotionReduced ? 'auto' : 'smooth' });
+      }
+    });
+  }
+
+  /* ========================================================================
+     6. KEYBOARD NAVIGATION
+     ======================================================================== */
+  window.addEventListener('keydown', function (e) {
+    // Avoid interfering with inputs/search
+    if (['INPUT', 'TEXTAREA'].indexOf(document.activeElement.tagName) !== -1) return;
+
+    var currentActive = document.querySelector('.slide.active') || slides[0];
+    var currentIndex = slides.indexOf(currentActive);
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      if (currentIndex < slides.length - 1) {
+        e.preventDefault();
+        slides[currentIndex + 1].scrollIntoView({ behavior: isMotionReduced ? 'auto' : 'smooth' });
+      }
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+      if (currentIndex > 0) {
+        e.preventDefault();
+        slides[currentIndex - 1].scrollIntoView({ behavior: isMotionReduced ? 'auto' : 'smooth' });
+      }
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      slides[0].scrollIntoView({ behavior: isMotionReduced ? 'auto' : 'smooth' });
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      slides[slides.length - 1].scrollIntoView({ behavior: isMotionReduced ? 'auto' : 'smooth' });
+    }
+  });
 
 })();

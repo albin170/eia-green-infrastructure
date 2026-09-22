@@ -2,44 +2,47 @@
 
 An interactive, high-impact web presentation on **Environmental Impact Assessment (EIA) and Green Infrastructure (GI)**.
 
-🔗 **Live Website / Demo:** [albin170.github.io/eia-green-infrastructure](https://albin170.github.io/eia-green-infrastructure/)
+🔗 **Live Website / Demo:** [albin170.github.io/vj](https://albin170.github.io/vj/)
 
 ---
 
-## 🌟 Features & Animations
+## 🌟 Design & Key Features
 
-- **8 Dynamic Visual Effects:**
-  - 🌌 **Starfield / Galaxy:** 120 twinkling, drifting stars across the viewport.
-  - 🫧 **Morphing Liquid Blobs:** Organic ambient gradient blobs with shifting border radii.
-  - ⚡ **Glitch & Chromatic Aberration:** Cyberpunk style brand accenting.
-  - 🪄 **Neon Cursor Trail:** Glowing particle trail that tracks cursor movement.
-  - 🗂️ **3D Card Transitions & Tilt:** Interactive perspective tilt responsive to mouse position.
-  - 🌊 **Wave / Water Surface Canvas:** Multi-layered dynamic sine waves flowing at the bottom.
-  - 💻 **Matrix Rain Canvas:** Translucent falling code rain in the background.
-  - 🎨 **Adaptive Section Gradients:** Smooth ambient color shifts corresponding to each section (*EIA*, *GI*, *Q&A*, *Sources*).
-- **Navigation:**
-  - Keyboard arrow keys (`←` / `→`) & Spacebar navigation
-  - Section quick jumps (EIA, Green Infrastructure, Q&A, Sources)
-  - Interactive slide search & visual thumbnail grid modal (`S` or click grid icon)
-  - Progress bar & live slide counters
+- **Deep Forest Visual Theme:** Natural gradient (`#071C16` → `#0B2920`) with subtle topographic contour patterns.
+- **Full-Screen Responsive Slide Deck:**
+  - Each slide fits 100% within the browser window with no topbar overlap and no bottom clipping.
+  - Smooth vertical scroll-snapping (`scroll-snap-type: y mandatory`).
+  - Maximized slide content box for crystal-clear readability on all screen sizes.
+- **Top Navigation Bar:**
+  - 7 quick-jump sections: `Overview` · `EIA` · `Process` · `Green Infrastructure` · `Benefits` · `Case Study` · `Q&A`.
+  - Live slide counter (`01 / 41`) and real-time progress bar.
+  - Visible **Reduce Motion** accessibility controller with persistent settings.
+- **Ambient Effects & Motion:**
+  - Subtle floating leaf canvas in the background (slow, organic, relaxing).
+  - Animated number counters for key statistics and steps.
+  - Keyboard navigation: `←` / `→` arrow keys, `Spacebar`, `PageUp` / `PageDown`, `Home`, `End`.
+- **Slide Overview & Transcript Modal:**
+  - Press `O` or click the grid icon to open the full 41-slide thumbnail overview.
+  - Accessible text dialog for reading slide transcripts.
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-├── index.html     # Main presentation structure & slide content
-├── styles.css     # Stylesheet containing animations, keyframes, and layout
-├── script.js      # Interactive features, canvases, and mouse tracker
-└── README.md      # Project overview and documentation
+├── index.html     # Main presentation structure & all 41 slides
+├── styles.css     # Design system, viewport-fitting layout, and theme styles
+├── script.js      # Interactive features, floating leaves canvas, navigation engine
+├── .nojekyll      # Ensures instant static hosting on GitHub Pages
+└── README.md      # Documentation and presentation guide
 ```
 
 ---
 
 ## 🚀 Running Locally
 
-1. Clone or download this repository:
+1. Clone this repository:
    ```bash
-   git clone https://github.com/albin170/eia-green-infrastructure.git
+   git clone https://github.com/albin170/vj.git
    ```
-2. Open `index.html` in any modern web browser.
+2. Open `index.html` in any web browser.
