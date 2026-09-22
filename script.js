@@ -1,454 +1,246 @@
-/* =========================================================
-   EIA x Green Infrastructure — External JavaScript
-   All original scripts preserved + new animation enhancements
+﻿/* =========================================================
+   EIA x Green Infrastructure — Extra Animations (script.js)
+   NEW: Morphing Blobs, Glitch, Starfield, Neon Cursor Trail,
+        3D Card Flip, Wave Surface, Matrix Rain, Gradient Shift
    ========================================================= */
 
 (function () {
   'use strict';
 
-  /* ── Globals ── */
-  var slides = Array.from(document.querySelectorAll('.slide'));
-  var total = slides.length;
-  var current = 0;
-  var autoplayTimer = null;
-  var autoplayActive = false;
-
-  /* ── Inject depth grid + orbs ── */
-  var g = document.createElement('div');
-  g.className = 'depth-grid';
-  document.body.insertBefore(g, document.body.firstChild);
-  for (var oi = 0; oi < 4; oi++) {
-    var o = document.createElement('div');
-    o.className = 'orb-3d';
-    document.body.insertBefore(o, document.body.firstChild);
+  /* ══════════════════════════════════════════
+     1. MORPHING LIQUID BLOBS
+  ══════════════════════════════════════════ */
+  for (var bi = 0; bi < 3; bi++) {
+    var blob = document.createElement('div');
+    blob.className = 'liquid-blob';
+    document.body.insertBefore(blob, document.body.firstChild);
   }
 
-  /* ── Helper: mark active slide ── */
-  function setActive(idx) {
-    idx = Math.max(0, Math.min(total - 1, idx));
-    slides.forEach(function (s, i) {
-      s.classList.toggle('active', i === idx);
-    });
-    current = idx;
-    updateUI();
-    spawnRipple(slides[idx]);
-    spawnParticles(slides[idx]);
-    addScanLine(slides[idx]);
+  /* ══════════════════════════════════════════
+     2. STARFIELD — 120 twinkling stars
+  ══════════════════════════════════════════ */
+  var starFrag = document.createDocumentFragment();
+  for (var si = 0; si < 120; si++) {
+    var star = document.createElement('div');
+    star.className = 'star';
+    var sz = 0.5 + Math.random() * 2.5;
+    star.style.cssText = [
+      'width:' + sz + 'px',
+      'height:' + sz + 'px',
+      'left:' + Math.random() * 100 + 'vw',
+      'top:' + Math.random() * 100 + 'vh',
+      'animation-duration:' + (2 + Math.random() * 5) + 's,' + (8 + Math.random() * 12) + 's',
+      'animation-delay:-' + (Math.random() * 5) + 's,-' + (Math.random() * 10) + 's',
+      'opacity:' + (0.1 + Math.random() * 0.5)
+    ].join(';');
+    starFrag.appendChild(star);
   }
+  document.body.insertBefore(starFrag, document.body.firstChild);
 
-  /* ── Update topbar UI ── */
-  function updateUI() {
-    var countEl = document.getElementById('slideCount');
-    if (countEl) countEl.textContent = pad(current + 1) + ' / ' + pad(total);
+  /* ══════════════════════════════════════════
+     3. MATRIX RAIN CANVAS
+  ══════════════════════════════════════════ */
+  var matCanvas = document.createElement('canvas');
+  matCanvas.id = 'matrix-canvas';
+  document.body.insertBefore(matCanvas, document.body.firstChild);
 
-    var bar = document.getElementById('progressBar');
-    if (bar) bar.style.width = ((current + 1) / total * 100) + '%';
+  function initMatrix() {
+    var ctx = matCanvas.getContext('2d');
+    matCanvas.width  = window.innerWidth;
+    matCanvas.height = window.innerHeight;
 
-    /* nav buttons */
-    var activeSec = slides[current] ? slides[current].dataset.section : '';
-    var sCol = { eia: '#5de4a8', gi: '#6effc7', qa: '#ffb380', sources: '#b0c4f0' };
-    document.querySelectorAll('.nav button').forEach(function (btn) {
-      var sec = btn.dataset.sectionJump;
-      var isActive = sec === activeSec;
-      btn.classList.toggle('active', isActive);
-      if (isActive) {
-        btn.style.color = sCol[sec] || '';
-        btn.style.borderColor = (sCol[sec] || '') + '44';
-        btn.style.textShadow = '0 0 16px ' + (sCol[sec] || '') + '80';
-      } else {
-        btn.style.color = '';
-        btn.style.borderColor = '';
-        btn.style.textShadow = '';
+    var cols   = Math.floor(matCanvas.width / 16);
+    var drops  = [];
+    for (var di = 0; di < cols; di++) drops[di] = Math.random() * -50;
+
+    var chars  = 'エイアグリーンインフラEIAGREEN0123456789アイウエオ';
+
+    function draw() {
+      ctx.fillStyle = 'rgba(5,15,10,0.05)';
+      ctx.fillRect(0, 0, matCanvas.width, matCanvas.height);
+      ctx.font = '13px monospace';
+
+      for (var ci = 0; ci < drops.length; ci++) {
+        var ch = chars[Math.floor(Math.random() * chars.length)];
+        /* gradient: bright head, dim tail */
+        var y = drops[ci] * 16;
+        ctx.fillStyle = drops[ci] > 2 ? 'rgba(93,228,168,0.7)' : 'rgba(180,255,220,0.95)';
+        ctx.fillText(ch, ci * 16, y);
+        if (y > matCanvas.height && Math.random() > 0.975) drops[ci] = 0;
+        drops[ci] += 0.4;
       }
-    });
-
-    /* mini progress on each meta card */
-    slides.forEach(function (s, i) {
-      var fill = s.querySelector('.slide-mini-progress-fill');
-      var count = s.querySelector('.slide-mini-progress-count');
-      if (fill) fill.style.width = ((i + 1) / total * 100) + '%';
-      if (count) count.textContent = pad(i + 1) + '/' + pad(total);
-    });
-
-    /* progress bar gradient per section */
-    var gradients = { eia: 'linear-gradient(90deg,#5de4a8,#a8f0d0 60%,#e8894a)', gi: 'linear-gradient(90deg,#2ad991,#6effc7)', qa: 'linear-gradient(90deg,#e8894a,#ffb380)', sources: 'linear-gradient(90deg,#6489dc,#b0c4f0)' };
-    if (bar) bar.style.background = gradients[activeSec] || gradients.eia;
-
-    updateDots();
-    updateSection();
-  }
-
-  function pad(n) { return n < 10 ? '0' + n : '' + n; }
-
-  /* ── IntersectionObserver → active slide detection ── */
-  var io = new IntersectionObserver(function (entries) {
-    entries.forEach(function (entry) {
-      if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
-        var idx = slides.indexOf(entry.target);
-        if (idx !== -1 && idx !== current) setActive(idx);
-      }
-    });
-  }, { threshold: 0.5 });
-  slides.forEach(function (s) { io.observe(s); });
-
-  /* ── Keyboard navigation ── */
-  document.addEventListener('keydown', function (e) {
-    switch (e.key) {
-      case 'ArrowDown': case 'ArrowRight': case 'PageDown':
-        e.preventDefault(); navigateBy(1); break;
-      case 'ArrowUp': case 'ArrowLeft': case 'PageUp':
-        e.preventDefault(); navigateBy(-1); break;
-      case 'Home': e.preventDefault(); navigateTo(0); break;
-      case 'End': e.preventDefault(); navigateTo(total - 1); break;
-      case 'f': case 'F': toggleFullscreen(); break;
-      case 'o': case 'O': toggleOverview(); break;
-      case 'a': case 'A': toggleAutoplay(); break;
-      case 'Escape': closeOverview(); break;
     }
+    return setInterval(draw, 50);
+  }
+
+  var matrixInterval = initMatrix();
+  window.addEventListener('resize', function () {
+    clearInterval(matrixInterval);
+    matrixInterval = initMatrix();
   });
 
-  function navigateBy(delta) { navigateTo(current + delta); }
-  function navigateTo(idx) {
-    idx = Math.max(0, Math.min(total - 1, idx));
-    slides[idx].scrollIntoView({ behavior: 'smooth' });
-  }
+  /* ══════════════════════════════════════════
+     4. NEON CURSOR TRAIL
+  ══════════════════════════════════════════ */
+  var trailColors = ['#5de4a8','#a8f0d0','#e8894a','#ffb380','#6effc7','#b0c4f0'];
+  var trailCount  = 0;
 
-  /* ── Overview modal ── */
-  var overviewBtn = document.getElementById('overviewBtn');
-  var modal = document.querySelector('.modal');
-  var searchEl = document.querySelector('.search');
-  if (overviewBtn) overviewBtn.addEventListener('click', toggleOverview);
+  document.addEventListener('mousemove', function (e) {
+    trailCount++;
+    if (trailCount % 3 !== 0) return; /* every 3rd move = smoother perf */
 
-  function toggleOverview() {
-    if (modal) modal.classList.toggle('open');
-  }
-  function closeOverview() {
-    if (modal) modal.classList.remove('open');
-  }
-  if (modal) {
-    modal.addEventListener('click', function (e) {
-      if (e.target === modal) closeOverview();
-    });
-  }
-  if (searchEl) {
-    searchEl.addEventListener('input', function () {
-      var q = searchEl.value.toLowerCase();
-      document.querySelectorAll('.thumb').forEach(function (t) {
-        var text = (t.dataset.search || t.textContent).toLowerCase();
-        t.hidden = !text.includes(q);
-      });
-    });
-  }
-
-  /* thumbnail clicks → go to slide */
-  document.querySelectorAll('.thumb').forEach(function (t) {
-    t.addEventListener('click', function () {
-      var go = parseInt(t.dataset.go || '1', 10) - 1;
-      closeOverview();
-      setTimeout(function () { navigateTo(go); }, 200);
-    });
+    var dot = document.createElement('div');
+    dot.className = 'cursor-trail';
+    var size  = 6 + Math.random() * 10;
+    var color = trailColors[Math.floor(Math.random() * trailColors.length)];
+    dot.style.cssText = [
+      'width:' + size + 'px',
+      'height:' + size + 'px',
+      'left:' + (e.clientX - size / 2) + 'px',
+      'top:' + (e.clientY - size / 2) + 'px',
+      'background:' + color,
+      'box-shadow: 0 0 ' + (size * 2) + 'px ' + color + ', 0 0 ' + (size * 4) + 'px ' + color + '44'
+    ].join(';');
+    document.body.appendChild(dot);
+    setTimeout(function () { dot.remove(); }, 600);
   });
 
-  /* ── Autoplay ── */
-  var autoBtn = document.getElementById('autoplayBtn');
-  if (autoBtn) autoBtn.addEventListener('click', toggleAutoplay);
-  function toggleAutoplay() {
-    autoplayActive = !autoplayActive;
-    if (autoBtn) autoBtn.textContent = autoplayActive ? '⏸' : '▶';
-    if (autoBtn) autoBtn.title = autoplayActive ? 'Pause autoplay (A)' : 'Start autoplay (A)';
-    if (autoplayActive) {
-      autoplayTimer = setInterval(function () {
-        if (current >= total - 1) { navigateTo(0); } else { navigateBy(1); }
-      }, 5000);
-    } else {
-      clearInterval(autoplayTimer);
+  /* ══════════════════════════════════════════
+     5. WAVE BOTTOM BAR (animated)
+  ══════════════════════════════════════════ */
+  var waveBar = document.createElement('div');
+  waveBar.className = 'wave-bar';
+  document.body.appendChild(waveBar);
+
+  /* WAVE SVG CANVAS at bottom */
+  var waveCanvas = document.createElement('canvas');
+  waveCanvas.className = 'wave-canvas';
+  document.body.appendChild(waveCanvas);
+
+  function initWave() {
+    var wctx  = waveCanvas.getContext('2d');
+    waveCanvas.width  = window.innerWidth;
+    waveCanvas.height = 120;
+    var offset = 0;
+
+    function drawWave() {
+      wctx.clearRect(0, 0, waveCanvas.width, waveCanvas.height);
+
+      /* Three layered waves */
+      [[0.018, 28, '#5de4a8', 0.35], [0.012, 20, '#a8f0d0', 0.22], [0.025, 14, '#e8894a', 0.18]]
+        .forEach(function (cfg, wi) {
+          wctx.beginPath();
+          wctx.moveTo(0, waveCanvas.height);
+          for (var x = 0; x <= waveCanvas.width; x += 2) {
+            var y = waveCanvas.height - cfg[1] - Math.sin((x * cfg[0]) + offset + wi * 1.2) * cfg[1];
+            wctx.lineTo(x, y);
+          }
+          wctx.lineTo(waveCanvas.width, waveCanvas.height);
+          wctx.closePath();
+          wctx.fillStyle = cfg[2];
+          wctx.globalAlpha = cfg[3];
+          wctx.fill();
+          wctx.globalAlpha = 1;
+        });
+
+      offset += 0.03;
+      requestAnimationFrame(drawWave);
     }
+    drawWave();
+  }
+  initWave();
+  window.addEventListener('resize', function () {
+    waveCanvas.width = window.innerWidth;
+  });
+
+  /* ══════════════════════════════════════════
+     6. GLITCH — add data-text attr to brand
+  ══════════════════════════════════════════ */
+  var brandDiv = document.querySelector('.brand > div');
+  if (brandDiv) {
+    var originalText = brandDiv.childNodes[0]
+      ? brandDiv.childNodes[0].textContent.trim()
+      : 'EIA × Green Infrastructure';
+    brandDiv.setAttribute('data-text', originalText);
   }
 
-  /* ── Fullscreen ── */
-  var fsBtn = document.getElementById('fullscreenBtn');
-  if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
-  function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
-    } else {
-      document.exitFullscreen && document.exitFullscreen();
-    }
+  /* Occasional full-page glitch flash */
+  function triggerGlitch() {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:9998', 'pointer-events:none',
+      'background:rgba(93,228,168,0.04)',
+      'animation:none',
+      'transform:translateX(' + (Math.random() > 0.5 ? 3 : -3) + 'px)'
+    ].join(';');
+    document.body.appendChild(overlay);
+    setTimeout(function () { overlay.remove(); }, 80);
+
+    /* Chromatic aberration flash */
+    document.body.style.filter = 'hue-rotate(' + (Math.random() * 30 - 15) + 'deg) brightness(1.05)';
+    setTimeout(function () { document.body.style.filter = ''; }, 100);
   }
-
-  /* ── Section nav buttons ── */
-  document.querySelectorAll('[data-go]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var go = parseInt(btn.dataset.go, 10) - 1;
-      navigateTo(go);
-    });
-  });
-
-  /* ── Transcript dialogs ── */
-  document.querySelectorAll('.text-btn[data-dialog]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var dlg = document.getElementById(btn.dataset.dialog);
-      if (dlg && dlg.showModal) dlg.showModal();
-    });
-  });
-  document.querySelectorAll('.dialog-close').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var dlg = btn.closest('dialog');
-      if (dlg) dlg.close();
-    });
-  });
-
-  /* ── Toast ── */
-  var toastEl = document.querySelector('.toast');
-  function showToast(msg) {
-    if (!toastEl) return;
-    toastEl.textContent = msg;
-    toastEl.classList.add('show');
-    setTimeout(function () { toastEl.classList.remove('show'); }, 2200);
+  /* Trigger glitch randomly every 8-20s */
+  function scheduleGlitch() {
+    var delay = 8000 + Math.random() * 12000;
+    setTimeout(function () { triggerGlitch(); scheduleGlitch(); }, delay);
   }
+  scheduleGlitch();
 
-  /* ── Copy link ── */
-  document.querySelectorAll('[data-copy]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      navigator.clipboard && navigator.clipboard.writeText(window.location.href).then(function () {
-        showToast('Link copied!');
-      });
-    });
-  });
-
-  /* ── 3D tilt on slide-shell ── */
-  slides.forEach(function (slide) {
+  /* ══════════════════════════════════════════
+     7. 3D CARD FLIP — enhanced tilt on mouse
+  ══════════════════════════════════════════ */
+  document.querySelectorAll('.slide').forEach(function (slide) {
     var shell = slide.querySelector('.slide-shell');
     if (!shell) return;
 
-    /* Spotlight element */
-    var spot = document.createElement('div');
-    spot.className = 'slide-spotlight';
-    slide.appendChild(spot);
-
     slide.addEventListener('mousemove', function (e) {
-      var r = slide.getBoundingClientRect();
-      var dx = (e.clientX - r.left - r.width / 2) / (r.width / 2);
-      var dy = (e.clientY - r.top - r.height / 2) / (r.height / 2);
-      shell.style.transform = 'perspective(1200px) rotateX(' + (-dy * 3.5) + 'deg) rotateY(' + (dx * 3.5) + 'deg)';
+      if (!slide.classList.contains('active')) return;
+      var r   = slide.getBoundingClientRect();
+      var dx  = (e.clientX - r.left - r.width / 2)  / (r.width / 2);
+      var dy  = (e.clientY - r.top  - r.height / 2) / (r.height / 2);
+      shell.style.transform = 'perspective(1200px) rotateX(' + (-dy * 5) + 'deg) rotateY(' + (dx * 5) + 'deg)';
       var card = shell.querySelector('.slide-card');
-      if (card) card.style.transform = 'perspective(1000px) rotateX(' + (-dy * 2) + 'deg) rotateY(' + (dx * 2) + 'deg) translateZ(10px)';
-
-      /* move spotlight */
-      spot.style.left = (e.clientX - r.left) + 'px';
-      spot.style.top = (e.clientY - r.top) + 'px';
+      if (card) {
+        card.style.transform = 'perspective(900px) rotateX(' + (-dy * 3) + 'deg) rotateY(' + (dx * 3) + 'deg) translateZ(20px)';
+        card.style.boxShadow = '0 ' + (40 + dy * 20) + 'px 100px rgba(0,0,0,.7), 0 0 40px rgba(93,228,168,' + (0.1 + Math.abs(dx) * 0.15) + ')';
+      }
     });
     slide.addEventListener('mouseleave', function () {
       shell.style.transform = '';
       var card = shell.querySelector('.slide-card');
-      if (card) card.style.transform = '';
+      if (card) { card.style.transform = ''; card.style.boxShadow = ''; }
     });
   });
 
-  /* ── Thumb 3D tilt ── */
-  document.querySelectorAll('.thumb').forEach(function (t) {
-    t.addEventListener('mousemove', function (e) {
-      var r = t.getBoundingClientRect();
-      var dx = ((e.clientX - r.left) / r.width - .5) * 2;
-      var dy = ((e.clientY - r.top) / r.height - .5) * 2;
-      t.style.transform = 'perspective(600px) rotateX(' + (-dy * 4) + 'deg) rotateY(' + (dx * 4) + 'deg) translateY(-8px) scale(1.015)';
-    });
-    t.addEventListener('mouseleave', function () { t.style.transform = ''; });
-  });
+  /* ══════════════════════════════════════════
+     8. GRADIENT COLOR SHIFT — section-aware
+  ══════════════════════════════════════════ */
+  var sectionGradients = {
+    eia:     'linear-gradient(135deg, #050f0a 0%, #0a2a18 40%, #071811 80%, #050f0a 100%)',
+    gi:      'linear-gradient(135deg, #040e08 0%, #083318 40%, #0a2010 80%, #040e08 100%)',
+    qa:      'linear-gradient(135deg, #0f0905 0%, #2a1408 40%, #180a04 80%, #0f0905 100%)',
+    sources: 'linear-gradient(135deg, #060810 0%, #0c1030 40%, #080c20 80%, #060810 100%)'
+  };
 
-  /* ── Scroll-depth rail ── */
-  var rail = document.createElement('div');
-  rail.className = 'scroll-depth-rail';
-  rail.setAttribute('aria-hidden', 'true');
-  var dots = [];
-  slides.forEach(function (s, i) {
-    var d = document.createElement('div');
-    d.className = 'scroll-depth-dot';
-    d.title = s.dataset.title || 'Slide ' + (i + 1);
-    d.addEventListener('click', function () { s.scrollIntoView({ behavior: 'smooth' }); });
-    rail.appendChild(d);
-    dots.push(d);
-  });
-  document.body.appendChild(rail);
-
-  function updateDots() {
-    var sCol = { eia: '#5de4a8', gi: '#6effc7', qa: '#ffb380', sources: '#b0c4f0' };
-    dots.forEach(function (d, i) {
-      d.classList.toggle('active', i === current);
-      var sec = slides[i] ? slides[i].dataset.section : '';
-      if (i === current && sCol[sec]) {
-        d.style.background = sCol[sec];
-        d.style.boxShadow = '0 0 10px ' + sCol[sec] + '99';
-      } else {
-        d.style.background = '';
-        d.style.boxShadow = '';
-      }
-    });
-  }
-
-  /* ── Section colour logic ── */
-  function updateSection() {
-    var active = slides[current];
-    if (!active) return;
-    var sec = active.dataset.section;
-    var sCol = { eia: '#5de4a8', gi: '#6effc7', qa: '#ffb380', sources: '#b0c4f0' };
-    var color = sCol[sec] || '#5de4a8';
-    document.querySelectorAll('.nav button').forEach(function (btn) {
-      if (btn.classList.contains('active')) {
-        btn.style.color = color;
-        btn.style.borderColor = color + '44';
-        btn.style.textShadow = '0 0 16px ' + color + '80';
-      }
-    });
-  }
-
-  /* ── Data-node orbits on each card ── */
-  var nc = { eia: 'rgba(93,228,168,.25)', gi: 'rgba(30,200,120,.25)', qa: 'rgba(232,137,74,.25)', sources: 'rgba(100,140,220,.25)' };
-  document.querySelectorAll('.slide-card').forEach(function (card) {
-    var sl = card.closest('.slide'); if (!sl) return;
-    var nodeColor = nc[sl.dataset.section] || nc.eia;
-    for (var ni = 0; ni < 2; ni++) {
-      var n = document.createElement('div');
-      n.className = 'data-node';
-      var sz = 6 + ni * 4;
-      n.style.cssText = 'width:' + sz + 'px;height:' + sz + 'px;--orbit-r:' + (50 + ni * 30) + 'px;--spin-speed:' + (12 + ni * 8) + 's;top:50%;left:50%;margin-top:-' + (sz / 2) + 'px;margin-left:-' + (sz / 2) + 'px;border-color:' + nodeColor + ';animation-delay:-' + (ni * 4) + 's;box-shadow:0 0 10px ' + nodeColor + ';';
-      card.appendChild(n);
-    }
-  });
-
-  /* ── Shine reset on card entry ── */
-  var shineObs = new MutationObserver(function (mutations) {
-    mutations.forEach(function (m) {
-      var slide = m.target;
-      if (!slide.classList.contains('active')) return;
-      var shine = slide.querySelector('.shine');
-      if (shine) {
-        shine.style.animation = 'none';
-        void shine.offsetWidth;
-        shine.style.animation = '';
-      }
-    });
-  });
-  slides.forEach(function (s) { shineObs.observe(s, { attributes: true, attributeFilter: ['class'] }); });
-
-  /* ── Detail & tag stagger ── */
-  slides.forEach(function (s) {
-    s.querySelectorAll('.slide-detail').forEach(function (el) {
-      el.style.opacity = '0'; el.style.transform = 'translateY(20px)';
-      el.style.transition = 'opacity .6s,transform .6s';
-    });
-    s.querySelectorAll('.slide-tag').forEach(function (t) {
-      t.style.opacity = '0'; t.style.transform = 'scale(.7)';
-      t.style.transition = 'opacity .4s,transform .4s';
-    });
-  });
-
-  var detailObs = new MutationObserver(function (mutations) {
-    mutations.forEach(function (m) {
-      var s = m.target;
-      var show = s.classList.contains('active');
-      s.querySelectorAll('.slide-detail').forEach(function (el, i) {
-        if (show) { el.style.opacity = ''; el.style.transform = ''; el.style.transitionDelay = (.4 + i * .12) + 's'; }
-        else { el.style.opacity = '0'; el.style.transform = 'translateY(20px)'; el.style.transitionDelay = '0s'; }
-      });
-      s.querySelectorAll('.slide-tag').forEach(function (tag, i) {
-        if (show) { setTimeout(function () { tag.style.opacity = ''; tag.style.transform = ''; }, 600 + i * 80); }
-        else { tag.style.opacity = '0'; tag.style.transform = 'scale(.7)'; }
-      });
-    });
-  });
-  slides.forEach(function (s) { detailObs.observe(s, { attributes: true, attributeFilter: ['class'] }); });
-
-  /* ── NEW: Floating particles per slide ── */
-  function spawnParticles(slide) {
-    /* Remove old particles from this slide */
-    slide.querySelectorAll('.particle').forEach(function (p) { p.remove(); });
-    var sCol = { eia: '93,228,168', gi: '30,200,120', qa: '232,137,74', sources: '100,140,220' };
-    var col = sCol[slide.dataset.section] || '93,228,168';
-    var count = 12;
-    for (var pi = 0; pi < count; pi++) {
-      var p = document.createElement('div');
-      p.className = 'particle';
-      var size = 2 + Math.random() * 4;
-      var left = 5 + Math.random() * 90;
-      var duration = 6 + Math.random() * 8;
-      var delay = Math.random() * 5;
-      var px = (Math.random() - .5) * 80;
-      p.style.cssText = [
-        'width:' + size + 'px',
-        'height:' + size + 'px',
-        'left:' + left + '%',
-        'bottom:-10px',
-        'background:rgba(' + col + ',' + (.3 + Math.random() * .4) + ')',
-        'animation-duration:' + duration + 's',
-        'animation-delay:' + delay + 's',
-        '--px:' + px + 'px',
-        'filter:blur(' + (Math.random() > .5 ? 1 : 0) + 'px)'
-      ].join(';');
-      slide.appendChild(p);
-    }
-  }
-
-  /* ── NEW: Ripple on activation ── */
-  function spawnRipple(slide) {
-    var old = slide.querySelector('.slide-ripple');
-    if (old) old.remove();
-    var r = document.createElement('div');
-    r.className = 'slide-ripple';
-    var size = Math.max(slide.offsetWidth, slide.offsetHeight) * 1.2;
-    r.style.cssText = 'width:' + size + 'px;height:' + size + 'px;left:50%;top:50%;margin-left:-' + (size/2) + 'px;margin-top:-' + (size/2) + 'px;';
-    slide.appendChild(r);
-    setTimeout(function () { r.remove(); }, 1000);
-  }
-
-  /* ── NEW: Scan line ── */
-  function addScanLine(slide) {
-    if (slide.querySelector('.scan-line')) return;
-    var sc = document.createElement('div');
-    sc.className = 'scan-line';
-    slide.appendChild(sc);
-  }
-
-  /* ── NEW: Nav button colour hover ── */
-  var sColMap = { eia: '#5de4a8', gi: '#6effc7', qa: '#ffb380', sources: '#b0c4f0' };
-  document.querySelectorAll('.nav button').forEach(function (btn) {
-    var sec = btn.dataset.sectionJump;
-    if (sec && sColMap[sec]) {
-      btn.addEventListener('mouseenter', function () {
-        if (!btn.classList.contains('active')) {
-          btn.style.color = sColMap[sec];
-          btn.style.textShadow = '0 0 16px ' + sColMap[sec] + '80';
-          btn.style.borderColor = sColMap[sec] + '44';
+  var slideEls = document.querySelectorAll('.slide');
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+        var sec = entry.target.dataset.section;
+        if (sec && sectionGradients[sec]) {
+          document.body.style.transition = 'background 1.2s ease';
+          document.body.style.background = sectionGradients[sec];
         }
-      });
-      btn.addEventListener('mouseleave', function () {
-        if (!btn.classList.contains('active')) {
-          btn.style.color = '';
-          btn.style.textShadow = '';
-          btn.style.borderColor = '';
+        /* Update wave color */
+        var waveColors = { eia:'#5de4a8', gi:'#2ad991', qa:'#e8894a', sources:'#6489dc' };
+        if (waveBar && waveColors[sec]) {
+          waveBar.style.background = 'linear-gradient(90deg,transparent,' + waveColors[sec] + ',transparent)';
         }
-      });
-    }
-  });
-
-  /* ── NEW: Particle colour change on section change ── */
-  var particleObs = new MutationObserver(function () {
-    var active = slides[current];
-    if (!active) return;
-    var sCol = { eia: '93,228,168', gi: '30,200,120', qa: '232,137,74', sources: '100,140,220' };
-    var col = sCol[active.dataset.section] || '93,228,168';
-    active.querySelectorAll('.particle').forEach(function (p) {
-      p.style.background = 'rgba(' + col + ',' + (.3 + Math.random() * .4) + ')';
+      }
     });
-  });
-  slides.forEach(function (s) { particleObs.observe(s, { attributes: true, attributeFilter: ['class'] }); });
+  }, { threshold: 0.5 });
 
-  /* ── Initial state ── */
-  setActive(0);
-  var initialActive = slides[0];
-  if (initialActive) {
-    spawnParticles(initialActive);
-    addScanLine(initialActive);
-  }
+  slideEls.forEach(function (s) { io.observe(s); });
 
 })();
